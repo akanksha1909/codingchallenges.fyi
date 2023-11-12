@@ -1,0 +1,22 @@
+<html>
+<script>
+    const socket = new WebSocket('ws://localhost:8080')
+    socket.addEventListener('open', () => {
+        socket.send('Hello Server')
+    })
+    socket.addEventListener('message', (event) => {
+        console.log('Data received from server', event.data)
+        const element = document.getElementById('logs-container')
+        const pElement = document.createElement("p")
+        const node = document.createTextNode(event.data)
+        pElement.appendChild(node)
+        element.appendChild(pElement)
+    })
+</script>
+
+<body>
+    <h1> Logging Application </h1>
+    <div id="logs-container"></div>
+</body>
+
+</html>
