@@ -1,7 +1,9 @@
 const http = require('http')
 const WebSocketServer = require('websocket').server
 const fs = require('fs');
-const buffer = new Buffer.alloc(1024)
+
+// Todo: efficient way of handling buffer size
+const buffer = Buffer.alloc(1024 * 1024)
 
 const server = http.createServer(function (request, response) {
     console.log((new Date()) + ' Received request for ' + request.url);
@@ -10,8 +12,8 @@ const server = http.createServer(function (request, response) {
             if (error) {
                 console.log('Error occurred while reading index html file')
             } else {
-                response.writeHead(304);
-                response.write(data)
+                response.writeHead(200, { 'Content-Type': 'text/html' });
+                response.end(data)
             }
             response.end()
         })
@@ -45,7 +47,7 @@ wsServer.on('request', (request) => {
 wsServer.on('connect', (connection) => {
     console.log((new Date()) + ' Successfully connected.')
     connection.on('message', async () => {
-        const lines = await readFileByPosition()
+        const lines = readFileByPosition()
         lines.forEach(line => {
             connection.send(JSON.stringify(line))
         })
@@ -58,78 +60,32 @@ let prevFileSize = null
 // It should return last ten lines
 // Todo: Need to handle the error condition
 const readFileByPosition = () => {
-    return new Promise((resolve, reject) => {
-        let lines = null
-        fs.open('logfile', 'r+', function (err, fd) {
-            if (err) {
-                return console.error(err);
-            }
-            console.log("Reading the file");
-            // Todo: See how can we get the exact postion to start
-            fs.read(fd, buffer, 0, buffer.length, 0, function (err, bytes) {
-                if (err) {
-                    console.log(err);
-                }
-
-                if (bytes > 0) {
-                    console.log(buffer.slice(0, bytes).toString())
-                    lines = buffer.slice(0, bytes).toString()
-                    console.log(bytes)
-                    prevFileSize = bytes
-                }
-                console.log(bytes + " bytes read");
-                // Close the opened file.
-                fs.close(fd, function (err) {
-                    if (err) {
-                        console.log(err);
-                    }
-                    if (bytes > 0) {
-                        const splitLines = lines.split('\n')
-                        const lastTenLines = splitLines.splice('-10')
-                        resolve(lastTenLines)
-                    }
-                    console.log("File closed successfully");
-                });
-            });
-        });
-    })
+    const fd = fs.openSync('logfile')
+    const bytes = fs.readSync(fd, buffer, 0, buffer.length, 0)
+    let lines = null
+    let lastTenLines = null
+    if (bytes > 0) {
+        lines = buffer.slice(0, bytes).toString()
+        prevFileSize += bytes
+        const splitLines = lines.split('\n')
+        lastTenLines = splitLines.splice('-10')
+    }
+    fs.closeSync(fd)
+    return lastTenLines
 }
 
 const readNewLines = (position) => {
-    return new Promise((resolve, reject) => {
-        fs.open('logfile', 'r+', function (err, fd) {
-            if (err) {
-                return console.error(err);
-            }
-            console.log("Reading the file");
-            // Todo: See how can we get the exact postion to start
-            fs.read(fd, buffer, 0, buffer.length, position, function (err, bytes) {
-                if (err) {
-                    console.log(err);
-                }
-                if (bytes > 0) {
-                    console.log(buffer.slice(0, bytes).toString())
-                    lines = buffer.slice(0, bytes).toString()
-                    console.log(bytes)
-                    prevFileSize = bytes
-                }
-                console.log(bytes + " bytes read");
-                // Close the opened file.
-                fs.close(fd, function (err) {
-                    if (err) {
-                        console.log(err);
-                    }
-                    if (bytes > 0) {
-                        const splitLines = lines.split('\n')
-                        const lastLine = splitLines
-                        resolve(lastLine)
-                    }
-
-                    console.log("File closed successfully");
-                });
-            });
-        });
-    })
+    const fd = fs.openSync('logfile')
+    const bytes = fs.readSync(fd, buffer, 0, buffer.length, position + 1)
+    let lines = null
+    let newLines = null
+    if (bytes > 0) {
+        lines = buffer.slice(0, bytes).toString()
+        prevFileSize += bytes
+        newLines = lines.split('\n')
+    }
+    fs.closeSync(fd)
+    return newLines
 }
 
 // Any change in file should be send to client via websocket
@@ -138,7 +94,7 @@ fs.watchFile('logfile', {
     interval: 4000
 }, async (curr, prev) => {
     console.log("Previous file size", prevFileSize)
-    const lines = await readNewLines(prevFileSize)
+    const lines = readNewLines(prevFileSize)
     console.log('Total client connections', connections.length)
     if (lines.length > 0) {
         connections.forEach(connection => {
