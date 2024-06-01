@@ -26,3 +26,29 @@ exports.readFile = async (path, argv) => {
         console.error('Error fetching file stats:', error);
     }
 }
+
+exports.readStdin = (argv) => {
+    let data = '';
+    process.stdin.setEncoding('utf8');
+
+    process.stdin.on('data', chunk => {
+        data += chunk;
+    });
+
+    process.stdin.on('end', () => {
+        if (argv.c) {
+            console.log(Buffer.byteLength(data, 'utf8'))
+        }
+        if (argv.l) {
+            console.log(data.split('\n').length - 1);
+        }
+        if (argv.w) {
+            const words = data.split(/\s+/).filter(word => word !== '');
+            console.log(words.length);
+        }
+    });
+
+    process.stdin.on('error', error => {
+        console.error('Error reading stdin:', error);
+    });
+}

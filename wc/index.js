@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 const { parseArguments } = require('./args')
-const { readFile } = require('./fileUtils')
+const { readFile, readStdin } = require('./fileUtils')
 
 const argv = parseArguments();
 
-if (!argv._[0]) {
-    console.error("Error: You must provide a file to process")
+// If there's no piped input, read from file
+if (process.stdin.isTTY) {
+    readFile(argv._[0], argv)
+} else {
+    readStdin(argv)
 }
 
-readFile(argv._[0], argv)
