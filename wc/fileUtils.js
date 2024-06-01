@@ -10,6 +10,10 @@ exports.readFile = async (path, argv) => {
             const data = await fs.readFile(path, "utf8");
             console.log(data.split("\n").length)
         }
+        if (argv.w) {
+            const data = await fs.readFile(path, "utf8");
+            console.log(data.split(/\s+/).filter(word => word !== '').length)
+        }
     } catch (error) {
         console.error('Error fetching file stats:', error);
     }

@@ -15,5 +15,11 @@ exports.parseArguments = () => {
             description: 'Count number of lines in the file',
             demandOption: false,
         })
+        .option('w', {
+            alias: 'word count',
+            type: 'boolean',
+            description: 'Count number of words in the file',
+            demandOption: false,
+        })
         .argv;
 }
