@@ -1,25 +1,12 @@
 #!/usr/bin/env node
 
-const fs = require('fs').promises;
-const yargs = require('yargs/yargs')
-const { hideBin } = require('yargs/helpers')
+const { parseArguments } = require('./args')
+const { readFile } = require('./fileUtils')
 
-const argv = yargs(hideBin(process.argv))
-    .option('c', {
-        alias: 'count',
-        type: 'boolean',
-        description: 'Count characters in the file',
-        demandOption: true,
-    })
-    .argv;
+const argv = parseArguments();
 
-async function getFileStats(path) {
-    try {
-        const stats = await fs.stat(path);
-        console.log('Size:', stats.size);
-    } catch (error) {
-        console.error('Error fetching file stats:', error);
-    }
+if (!argv._[0]) {
+    console.error("Error: You must provide a file to process")
 }
 
-getFileStats(argv._[0]);
+readFile(argv._[0], argv)
