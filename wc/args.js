@@ -21,5 +21,11 @@ exports.parseArguments = () => {
             description: 'Count number of words in the file',
             demandOption: false,
         })
+        .option('m', {
+            alias: 'characters',
+            type: 'boolean',
+            description: 'Count number of characters in the file',
+            demandOption: false,
+        })
         .argv;
 }
